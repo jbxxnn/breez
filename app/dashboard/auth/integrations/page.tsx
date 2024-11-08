@@ -1,29 +1,28 @@
-import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { IntegrationCard } from './components/integration-card'
 import { AuthSidebarWrapper } from "@/app/components/auth-sidebar-wrapper"
 
 const availableIntegrations = [
   {
-    name: "Jira",
-    description: "Connect with Jira for issue tracking and project management",
-    category: "Project Management",
-  },
-  {
-    name: "Google Workspace",
-    description: "Access Google Drive, Calendar, and other Google services",
-    category: "Productivity",
+    name: "Google Calendar",
+    description: "Sync your calendar events and manage schedules",
+    category: "Calendar",
+    provider: "google_calendar",
   },
   // Add more integrations as needed
 ]
 
-export default function IntegrationsPage() {
-    
+export default async function IntegrationsPage() {
+  const supabase = createServerComponentClient({ cookies })
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  // Fetch existing integrations for the user
+  const { data: integrations } = await supabase
+    .from('integrations')
+    .select('*')
+    .eq('user_id', user?.id)
+
   return (
     <AuthSidebarWrapper>
       <div className="grid gap-6">
@@ -31,24 +30,19 @@ export default function IntegrationsPage() {
           <h3 className="text-lg font-medium">Available Integrations</h3>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {availableIntegrations.map((integration) => (
-            <Card key={integration.name}>
-              <CardHeader>
-                <CardTitle className="text-base font-semibold">
-                  {integration.name}
-                </CardTitle>
-                <CardDescription>{integration.category}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {integration.description}
-                </p>
-                <Button variant="outline" className="w-full">
-                  Connect
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          {availableIntegrations.map((integration) => {
+            const isConnected = integrations?.some(i => 
+              i.provider === integration.provider
+            )
+
+            return (
+              <IntegrationCard
+                key={integration.name}
+                {...integration}
+                isConnected={!!isConnected}
+              />
+            )
+          })}
         </div>
       </div>
     </AuthSidebarWrapper>
