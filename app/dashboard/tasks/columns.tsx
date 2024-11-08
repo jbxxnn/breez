@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef, Row } from "@tanstack/react-table"
-import { Badge } from "@/components/ui/badge"
+// import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Trash, ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react"
+import { MoreHorizontal, Trash, ChevronsUpDown, ArrowUp, ArrowDown, CircleX, CircleCheck, CircleHelp, Timer, ArrowRight } from "lucide-react"
 import { formatDistanceToNow } from 'date-fns'
 import { TaskFormDialog } from "./components/task-form-dialog"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
@@ -91,6 +91,7 @@ export const columns: ColumnDef<Task>[] = [
     ),
     enableSorting: false,
     enableHiding: false,
+    size: 40, // Fixed width for checkbox column
   },
   {
     accessorKey: "title",
@@ -105,6 +106,7 @@ export const columns: ColumnDef<Task>[] = [
         </Button>
       )
     },
+    size: 400, // Larger width for title
   },
   {
     accessorKey: "status",
@@ -119,21 +121,26 @@ export const columns: ColumnDef<Task>[] = [
         </Button>
       )
     },
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string
+      const StatusIcon = 
+        status === "todo" ? CircleHelp :
+        status === "in_progress" ? Timer :
+        status === "done" ? CircleCheck :
+        status === "canceled" ? CircleX :
+        CircleHelp;
+
+      return (
+        <div className="flex items-center">
+          <StatusIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+          <span className="capitalize">{status.replace('_', ' ')}</span>
+        </div>
+      )
+    },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
-    cell: ({ row }) => {
-      const status = row.getValue("status") as string
-      return (
-        <Badge variant={
-          status === "completed" ? "secondary" :
-          status === "in_progress" ? "outline" :
-          "default"
-        }>
-          {status.replace('_', ' ')}
-        </Badge>
-      )
-    },
+    size: 150, // Fixed width for status
   },
   {
     accessorKey: "priority",
@@ -148,21 +155,25 @@ export const columns: ColumnDef<Task>[] = [
         </Button>
       )
     },
+    cell: ({ row }) => {
+      const priority = row.getValue("priority") as string
+      const PriorityIcon = 
+        priority === "high" ? ArrowUp :
+        priority === "medium" ? ArrowRight :
+        priority === "low" ? ArrowDown :
+        ArrowUp;
+
+      return (
+        <div className="flex items-center">
+          <PriorityIcon className="mr-2 h-4 w-4" />
+          <span className="capitalize">{priority}</span>
+        </div>
+      )
+    },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id))
     },
-    cell: ({ row }) => {
-      const priority = row.getValue("priority") as string
-      return (
-        <Badge variant={
-          priority === "high" ? "destructive" :
-          priority === "medium" ? "secondary" :
-          "default"
-        }>
-          {priority}
-        </Badge>
-      )
-    },
+    size: 150, // Fixed width for priority
   },
   {
     accessorKey: "created_at",
@@ -178,7 +189,7 @@ export const columns: ColumnDef<Task>[] = [
           ) : column.getIsSorted() === "desc" ? (
             <ArrowDown className="ml-2.5 size-4" />
           ) : (
-            <ArrowUp className="ml-2.5 size-4" />
+            <ChevronsUpDown className="ml-2.5 size-4" />
           )}
         </Button>
       )
@@ -186,9 +197,11 @@ export const columns: ColumnDef<Task>[] = [
     cell: ({ row }) => {
       return formatDistanceToNow(new Date(row.getValue("created_at")), { addSuffix: true })
     },
+    size: 180, // Fixed width for created date
   },
   {
     id: "actions",
     cell: ({ row }) => <ActionCell row={row} />,
+    size: 80, // Fixed width for actions
   },
 ] 

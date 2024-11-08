@@ -154,7 +154,8 @@ export function TaskFormDialog({ task, mode }: TaskFormDialogProps) {
                 <SelectContent>
                   <SelectItem value="todo">Todo</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="canceled">Canceled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
