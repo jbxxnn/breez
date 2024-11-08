@@ -315,15 +315,12 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton 
-                        asChild
                         tooltip={item.title}
                         className={item.isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : ""}
                       >
-                        <a href={item.url} className="flex w-full items-center">
-                          {item.icon && <item.icon className="mr-2" />}
-                          <span>{item.title}</span>
-                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                        </a>
+                        {item.icon && <item.icon className="mr-2" />}
+                        <span>{item.title}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
