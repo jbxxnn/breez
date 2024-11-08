@@ -100,6 +100,7 @@ export const columns: ColumnDef<Task>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent flex justify-start p-0"
         >
           Title
           <ChevronsUpDown className="ml-2.5 size-4" />
@@ -115,6 +116,7 @@ export const columns: ColumnDef<Task>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent flex justify-start p-0"
         >
           Status
           <ChevronsUpDown className="ml-2.5 size-4" />
@@ -149,6 +151,7 @@ export const columns: ColumnDef<Task>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent flex justify-start p-0"
         >
           Priority
           <ChevronsUpDown className="ml-2.5 size-4" />
@@ -182,6 +185,7 @@ export const columns: ColumnDef<Task>[] = [
         <Button
           variant="ghost"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="hover:bg-transparent flex justify-start p-0"
         >
           Created
           {column.getIsSorted() === "asc" ? (
@@ -197,7 +201,11 @@ export const columns: ColumnDef<Task>[] = [
     cell: ({ row }) => {
       return formatDistanceToNow(new Date(row.getValue("created_at")), { addSuffix: true })
     },
-    size: 180, // Fixed width for created date
+    filterFn: (row, id, value: { from: Date; to: Date }) => {
+      const rowDate = new Date(row.getValue(id))
+      return rowDate >= value.from && rowDate <= value.to
+    },
+    size: 180,
   },
   {
     id: "actions",

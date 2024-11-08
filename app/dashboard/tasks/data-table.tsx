@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { DataTableFacetedFilter } from "./components/data-table-faceted-filter"
+import { DataTableDateRangePicker } from "./components/data-table-date-range-picker"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -124,6 +125,9 @@ export function DataTable<TData, TValue>({
               title="Priority"
               options={priorities}
             />
+          )}
+          {table.getColumn("created_at") && (
+            <DataTableDateRangePicker column={table.getColumn("created_at")} />
           )}
         </div>
         <DropdownMenu>
