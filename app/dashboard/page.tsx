@@ -28,7 +28,11 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen">
-      <Sidebar_07 user={user} />
+      <Sidebar_07 user={user}>
+        <div>
+          <h1>Dashboard</h1>
+        </div>
+      </Sidebar_07>
     </main>
   )
 } 

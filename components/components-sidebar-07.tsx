@@ -8,7 +8,6 @@ import {
   BadgeCheck,
   Bell,
   BookOpen,
-  Bot,
   ChevronRight,
   ChevronsUpDown,
   CreditCard,
@@ -24,6 +23,7 @@ import {
   Sparkles,
   SquareTerminal,
   Trash2,
+  Clipboard,
 } from "lucide-react"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
@@ -32,14 +32,14 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+// import {
+//   Breadcrumb,
+//   BreadcrumbItem,
+//   BreadcrumbLink,
+//   BreadcrumbList,
+//   BreadcrumbPage,
+//   BreadcrumbSeparator,
+// } from "@/components/ui/breadcrumb"
 import {
   Collapsible,
   CollapsibleContent,
@@ -55,7 +55,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Separator } from "@/components/ui/separator"
+// import { Separator } from "@/components/ui/separator"
 import {
   Sidebar,
   SidebarContent,
@@ -73,7 +73,6 @@ import {
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
 // This is sample data.
 
@@ -85,6 +84,7 @@ interface User {
 
 interface Sidebar07Props {
   user: User;
+  children: React.ReactNode;
 }
 
 // Modify the data object to use passed user data
@@ -100,40 +100,41 @@ const data = (user: User) => ({
   navMain: [
     {
       title: "Playground",
-      url: "#",
+      url: "/dashboard/playground",
       icon: SquareTerminal,
-      isActive: true,
+      isActive: false,
       items: [
         {
           title: "History",
-          url: "#",
+          url: "/dashboard/playground/history",
         },
         {
           title: "Starred",
-          url: "#",
+          url: "/dashboard/playground/starred",
         },
         {
           title: "Settings",
-          url: "#",
+          url: "/dashboard/playground/settings",
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: Bot,
+      title: "Tasks",
+      url: "/dashboard/tasks",
+      icon: Clipboard,
+      isActive: true,
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: "All Tasks",
+          url: "/dashboard/tasks",
         },
         {
-          title: "Explorer",
-          url: "#",
+          title: "Active",
+          url: "/dashboard/tasks/active",
         },
         {
-          title: "Quantum",
-          url: "#",
+          title: "Completed",
+          url: "/dashboard/tasks/completed",
         },
       ],
     },
@@ -203,7 +204,7 @@ const data = (user: User) => ({
   ],
 })
 
-export function Sidebar_07({ user }: Sidebar07Props) {
+export function Sidebar_07({ user, children }: Sidebar07Props) {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const [activeTeam, setActiveTeam] = React.useState(data(user).teams[0])
@@ -296,10 +297,15 @@ export function Sidebar_07({ user }: Sidebar07Props) {
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      <SidebarMenuButton 
+                        asChild
+                        tooltip={item.title}
+                      >
+                        <a href={item.url} className="flex w-full items-center">
+                          {item.icon && <item.icon className="mr-2" />}
+                          <span>{item.title}</span>
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </a>
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -460,33 +466,7 @@ export function Sidebar_07({ user }: Sidebar07Props) {
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">
-                    Building Your Application
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-          </div>
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
-        </div>
+        {children}
       </SidebarInset>
     </SidebarProvider>
   )
