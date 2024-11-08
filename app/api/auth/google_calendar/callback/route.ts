@@ -2,6 +2,57 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+async function createOrGetBreezCalendar(accessToken: string) {
+  try {
+    // First, list all calendars to check if 'breez' exists
+    const listResponse = await fetch(
+      'https://www.googleapis.com/calendar/v3/users/me/calendarList',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    const calendars = await listResponse.json()
+    const breezCalendar = calendars.items?.find(
+      (cal: { summary: string }) => cal.summary === 'breez'
+    )
+
+    if (breezCalendar) {
+      return breezCalendar.id
+    }
+
+    // If 'breez' calendar doesn't exist, create it
+    const createResponse = await fetch(
+      'https://www.googleapis.com/calendar/v3/calendars',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summary: 'breez',
+          description: 'Calendar created by breez application',
+          timeZone: 'UTC' // You might want to use the user's timezone
+        })
+      }
+    )
+
+    if (!createResponse.ok) {
+      throw new Error('Failed to create breez calendar')
+    }
+
+    const newCalendar = await createResponse.json()
+    return newCalendar.id
+  } catch (error) {
+    console.error('Error managing breez calendar:', error)
+    throw error
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url)
@@ -46,6 +97,9 @@ export async function GET(request: Request) {
 
     const tokens = await tokenResponse.json()
 
+    // Create or get the breez calendar
+    const breezCalendarId = await createOrGetBreezCalendar(tokens.access_token)
+
     // Get the current user
     const cookieStore = cookies()
     const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
@@ -55,7 +109,7 @@ export async function GET(request: Request) {
       throw new Error('No authenticated user')
     }
 
-    // Store integration details
+    // Store integration details including the breez calendar ID
     const { error: integrationError } = await supabase
       .from('integrations')
       .upsert({
@@ -64,6 +118,9 @@ export async function GET(request: Request) {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+        settings: {
+          breez_calendar_id: breezCalendarId
+        }
       })
 
     if (integrationError) {

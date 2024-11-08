@@ -19,6 +19,7 @@ export async function GET(request: Request) {
     
     // Define the scopes you need
     const scopes = [
+      'https://www.googleapis.com/auth/calendar',
       'https://www.googleapis.com/auth/calendar.readonly',
       'https://www.googleapis.com/auth/calendar.events',
     ]
