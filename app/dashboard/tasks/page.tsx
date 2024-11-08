@@ -3,15 +3,15 @@ import { cookies } from 'next/headers'
 import { DataTable } from "./data-table"
 import { columns } from "./columns"
 import { Sidebar_07 } from "@/components/components-sidebar-07"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-//   DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { TaskFormDialog } from "./components/task-form-dialog"
+// import { Button } from "@/components/ui/button"
+// import { Input } from "@/components/ui/input"
+// import {
+//   DropdownMenu,
+// //   DropdownMenuCheckboxItem,
+//   DropdownMenuContent,
+//   DropdownMenuTrigger,
+// } from "@/components/ui/dropdown-menu"
+import { TestFloatingPanel } from "./components/test-floating-panel"
 
 export default async function TasksPage() {
   const supabase = createServerComponentClient({ cookies })
@@ -39,23 +39,9 @@ export default async function TasksPage() {
         <header className="flex h-16 items-center justify-between border-b px-4">
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-semibold">Tasks</h1>
-            <TaskFormDialog mode="create" />
+            <TestFloatingPanel />
           </div>
           <div className="flex items-center gap-2">
-            <Input
-              placeholder="Filter tasks..."
-              className="h-8 w-[150px] lg:w-[250px]"
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8">
-                  Columns
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {/* Column visibility controls will be handled in data-table.tsx */}
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </header>
         <main className="flex-1 p-4">
