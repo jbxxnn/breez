@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -8,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Loader2 } from "lucide-react"
 
 interface IntegrationCardProps {
   name: string
@@ -24,8 +26,16 @@ export function IntegrationCard({
   provider, 
   isConnected 
 }: IntegrationCardProps) {
+  const [isLoading, setIsLoading] = useState(false)
+
   const handleConnect = () => {
-    window.location.href = `/api/auth/${provider}/authorize`
+    setIsLoading(true)
+    try {
+      window.location.href = `/api/auth/${provider}/authorize`
+    } catch (error) {
+      setIsLoading(false)
+      console.error('Failed to redirect:', error)
+    }
   }
 
   return (
@@ -44,8 +54,16 @@ export function IntegrationCard({
           variant={isConnected ? "secondary" : "outline"} 
           className="w-full"
           onClick={handleConnect}
+          disabled={isLoading}
         >
-          {isConnected ? "Reconnect" : "Connect"}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Connecting...
+            </>
+          ) : (
+            isConnected ? "Reconnect" : "Connect"
+          )}
         </Button>
       </CardContent>
     </Card>
