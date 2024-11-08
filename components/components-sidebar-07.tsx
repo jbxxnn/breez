@@ -9,12 +9,10 @@ import {
   Bot,
   ChevronRight,
   ChevronsUpDown,
-  Command,
   CreditCard,
   Folder,
   Forward,
   Frame,
-  GalleryVerticalEnd,
   LogOut,
   Map,
   MoreHorizontal,
@@ -75,27 +73,25 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 // This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
+
+interface User {
+  name: string;
+  email: string;
+  avatar: string;
+}
+
+interface Sidebar07Props {
+  user: User;
+}
+
+// Modify the data object to use passed user data
+const data = (user: User) => ({
+  user,
   teams: [
     {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
+      name: "Breez.",
       logo: AudioWaveform,
       plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
     },
   ],
   navMain: [
@@ -202,10 +198,10 @@ const data = {
       icon: Map,
     },
   ],
-}
+})
 
-export function Sidebar_07() {
-  const [activeTeam, setActiveTeam] = React.useState(data.teams[0])
+export function Sidebar_07({ user }: Sidebar07Props) {
+  const [activeTeam, setActiveTeam] = React.useState(data(user).teams[0])
 
   return (
     <SidebarProvider>
@@ -242,7 +238,7 @@ export function Sidebar_07() {
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
                     Teams
                   </DropdownMenuLabel>
-                  {data.teams.map((team, index) => (
+                  {data(user).teams.map((team, index) => (
                     <DropdownMenuItem
                       key={team.name}
                       onClick={() => setActiveTeam(team)}
@@ -273,7 +269,7 @@ export function Sidebar_07() {
           <SidebarGroup>
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
-              {data.navMain.map((item) => (
+              {data(user).navMain.map((item) => (
                 <Collapsible
                   key={item.title}
                   asChild
@@ -309,7 +305,7 @@ export function Sidebar_07() {
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Projects</SidebarGroupLabel>
             <SidebarMenu>
-              {data.projects.map((item) => (
+              {data(user).projects.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
@@ -366,17 +362,19 @@ export function Sidebar_07() {
                   >
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage
-                        src={data.user.avatar}
-                        alt={data.user.name}
+                        src={data(user).user.avatar}
+                        alt={data(user).user.name}
                       />
-                      <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                      <AvatarFallback className="rounded-lg">
+                        {data(user).user.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {data.user.name}
+                        {data(user).user.name}
                       </span>
                       <span className="truncate text-xs">
-                        {data.user.email}
+                        {data(user).user.email}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4" />
@@ -392,8 +390,8 @@ export function Sidebar_07() {
                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                       <Avatar className="h-8 w-8 rounded-lg">
                         <AvatarImage
-                          src={data.user.avatar}
-                          alt={data.user.name}
+                          src={data(user).user.avatar}
+                          alt={data(user).user.name}
                         />
                         <AvatarFallback className="rounded-lg">
                           CN
@@ -401,10 +399,10 @@ export function Sidebar_07() {
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
                         <span className="truncate font-semibold">
-                          {data.user.name}
+                          {data(user).user.name}
                         </span>
                         <span className="truncate text-xs">
-                          {data.user.email}
+                          {data(user).user.email}
                         </span>
                       </div>
                     </div>

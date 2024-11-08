@@ -1,5 +1,5 @@
-import { Sidebar_07 } from "@/components/components-sidebar-07"
+// import { Sidebar_07 } from "@/components/components-sidebar-07"
 
 export default function Page() {
-  return <Sidebar_07 />
+  // return <Sidebar_07 />
 }
