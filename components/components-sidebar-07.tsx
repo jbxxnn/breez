@@ -1,5 +1,7 @@
 "use client"
 
+// ... existing imports ...
+import { useRouter } from "next/navigation"
 import * as React from "react"
 import {
   AudioWaveform,
@@ -23,6 +25,7 @@ import {
   SquareTerminal,
   Trash2,
 } from "lucide-react"
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 import {
   Avatar,
@@ -89,9 +92,9 @@ const data = (user: User) => ({
   user,
   teams: [
     {
-      name: "Breez.",
+      name: "BREEZ",
       logo: AudioWaveform,
-      plan: "Startup",
+      plan: "",
     },
   ],
   navMain: [
@@ -201,7 +204,22 @@ const data = (user: User) => ({
 })
 
 export function Sidebar_07({ user }: Sidebar07Props) {
+  const router = useRouter()
+  const supabase = createClientComponentClient()
   const [activeTeam, setActiveTeam] = React.useState(data(user).teams[0])
+
+  const handleLogout = async () => {
+    try {
+      // Sign out using Supabase auth
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      
+      // Redirect to home page after successful logout
+      router.push('/')
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
 
   return (
     <SidebarProvider>
@@ -430,7 +448,7 @@ export function Sidebar_07({ user }: Sidebar07Props) {
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
                     <LogOut />
                     Log out
                   </DropdownMenuItem>
