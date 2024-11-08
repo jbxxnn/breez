@@ -25,6 +25,16 @@ import { Label } from "@/components/ui/label"
 import { Plus, Pencil } from "lucide-react"
 import { Task } from "../columns"
 import { useToast } from "@/hooks/use-toast"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
+import { Textarea } from "@/components/ui/textarea"
 
 interface TaskFormDialogProps {
   task?: Task
@@ -40,8 +50,10 @@ export function TaskFormDialog({ task, mode }: TaskFormDialogProps) {
   const [formData, setFormData] = useState<Partial<Task>>(
     task || {
       title: "",
+      description: "",
       status: "todo",
       priority: "low",
+      due_date: "",
     }
   )
 
@@ -141,6 +153,18 @@ export function TaskFormDialog({ task, mode }: TaskFormDialogProps) {
               />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, description: e.target.value }))
+                }
+                placeholder="Add a more detailed description..."
+                className="min-h-[100px]"
+              />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="status">Status</Label>
               <Select
                 value={formData.status}
@@ -176,6 +200,64 @@ export function TaskFormDialog({ task, mode }: TaskFormDialogProps) {
                   <SelectItem value="high">High</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="due_date">Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formData.due_date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.due_date ? (
+                      format(new Date(formData.due_date), "PPP p")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={formData.due_date ? new Date(formData.due_date) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        // Set time to end of day by default
+                        date.setHours(23, 59, 59, 999)
+                        setFormData((prev) => ({
+                          ...prev,
+                          due_date: date.toISOString(),
+                        }))
+                      }
+                    }}
+                    initialFocus
+                  />
+                  <div className="p-3 border-t">
+                    <Input
+                      type="time"
+                      value={formData.due_date 
+                        ? format(new Date(formData.due_date), "HH:mm")
+                        : ""
+                      }
+                      onChange={(e) => {
+                        const [hours, minutes] = e.target.value.split(':')
+                        const date = formData.due_date 
+                          ? new Date(formData.due_date)
+                          : new Date()
+                        date.setHours(parseInt(hours), parseInt(minutes))
+                        setFormData((prev) => ({
+                          ...prev,
+                          due_date: date.toISOString(),
+                        }))
+                      }}
+                    />
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <DialogFooter>

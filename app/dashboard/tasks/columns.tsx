@@ -21,9 +21,11 @@ import { useRouter } from "next/navigation"
 export type Task = {
   id: string
   title: string
+  description?: string
   status: "todo" | "in_progress" | "completed"
   priority: "low" | "medium" | "high"
   created_at: string
+  due_date?: string
 }
 
 const ActionCell = ({ row }: { row: Row<Task> }) => {
