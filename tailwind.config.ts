@@ -71,6 +71,7 @@ const config: Config = {
   			"shimmer": "shimmer 2s linear infinite",
   			"spotlight": "spotlight 2s ease .75s 1 forwards",
   			"scroll": "scroll var(--animation-duration, 40s) var(--animation-direction, forwards) linear infinite",
+  			"aurora": "aurora 60s linear infinite",
   		},
   		keyframes: {
   			meteor: {
@@ -104,12 +105,34 @@ const config: Config = {
   					transform: "translate(calc(-50% - 0.5rem))",
   				},
   			},
+  			aurora: {
+  				from: {
+  					backgroundPosition: "50% 50%, 50% 50%",
+  				},
+  				to: {
+  					backgroundPosition: "350% 50%, 350% 50%",
+  				},
+  			},
   		},
   	}
   },
   plugins: [
     require("tailwindcss-animate"),
     require("@tailwindcss/aspect-ratio"),
+    addVariablesForColors,
   ],
 };
+
+function addVariablesForColors({ addBase, theme }: any) {
+  const flattenColorPalette = require("tailwindcss/lib/util/flattenColorPalette").default;
+  let allColors = flattenColorPalette(theme("colors"));
+  let newVars = Object.fromEntries(
+    Object.entries(allColors).map(([key, val]) => [`--${key}`, val])
+  );
+
+  addBase({
+    ":root": newVars,
+  });
+}
+
 export default config;
