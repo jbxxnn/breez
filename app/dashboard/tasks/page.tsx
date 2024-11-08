@@ -2,15 +2,7 @@ import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { DataTable } from "./data-table"
 import { columns } from "./columns"
-import { Sidebar_07 } from "@/components/components-sidebar-07"
-// import { Button } from "@/components/ui/button"
-// import { Input } from "@/components/ui/input"
-// import {
-//   DropdownMenu,
-// //   DropdownMenuCheckboxItem,
-//   DropdownMenuContent,
-//   DropdownMenuTrigger,
-// } from "@/components/ui/dropdown-menu"
+import { AuthSidebarWrapper } from "@/app/components/auth-sidebar-wrapper"
 import { FloatingTaskPanel } from "./components/floating-task-panel"
 
 export default async function TasksPage() {
@@ -26,15 +18,8 @@ export default async function TasksPage() {
     .eq('user_id', user?.id)
     .order('created_at', { ascending: false })
 
-  // Prepare user data for sidebar
-  const userData = {
-    name: user?.user_metadata?.full_name || 'User',
-    email: user?.email || '',
-    avatar: user?.user_metadata?.avatar_url || '',
-  }
-
   return (
-    <Sidebar_07 user={userData}>
+    <AuthSidebarWrapper>
       <div className="flex flex-col h-full">
         <header className="flex h-16 items-center justify-between border-b px-4">
           <div className="flex items-center space-x-4">
@@ -49,6 +34,6 @@ export default async function TasksPage() {
           <DataTable columns={columns} data={tasks || []} />
         </main>
       </div>
-    </Sidebar_07>
+    </AuthSidebarWrapper>
   )
 } 

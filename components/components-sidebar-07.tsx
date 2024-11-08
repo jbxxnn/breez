@@ -1,13 +1,14 @@
 "use client"
 
 // ... existing imports ...
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import * as React from "react"
 import {
   AudioWaveform,
   BadgeCheck,
   Bell,
-  BookOpen,
+  // BookOpen,
+  KeyRound,
   ChevronRight,
   ChevronsUpDown,
   CreditCard,
@@ -87,8 +88,18 @@ interface Sidebar07Props {
   children: React.ReactNode;
 }
 
-// Modify the data object to use passed user data
-const data = (user: User) => ({
+// Add this helper function before the data object
+const isPathActive = (itemUrl: string, currentPath: string) => {
+  return currentPath.startsWith(itemUrl)
+}
+
+// Add this helper function alongside the existing isPathActive function
+const isExactPathMatch = (itemUrl: string, currentPath: string) => {
+  return currentPath === itemUrl
+}
+
+// Modify the data object to accept currentPath
+const data = (user: User, currentPath: string) => ({
   user,
   teams: [
     {
@@ -102,7 +113,7 @@ const data = (user: User) => ({
       title: "Playground",
       url: "/dashboard/playground",
       icon: SquareTerminal,
-      isActive: false,
+      isActive: isPathActive("/dashboard/playground", currentPath),
       items: [
         {
           title: "History",
@@ -122,7 +133,7 @@ const data = (user: User) => ({
       title: "Tasks",
       url: "/dashboard/tasks",
       icon: Clipboard,
-      isActive: true,
+      isActive: isPathActive("/dashboard/tasks", currentPath),
       items: [
         {
           title: "All Tasks",
@@ -139,25 +150,30 @@ const data = (user: User) => ({
       ],
     },
     {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
+      title: "Authentication",
+      url: "/dashboard/auth",
+      icon: KeyRound,
+      isActive: isPathActive("/dashboard/auth", currentPath),
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Connected Apps",
+          url: "/dashboard/auth/connected",
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: "Available Integrations",
+          url: "/dashboard/auth/integrations",
         },
         {
-          title: "Tutorials",
-          url: "#",
+          title: "API Keys",
+          url: "/dashboard/auth/api-keys",
         },
         {
-          title: "Changelog",
-          url: "#",
+          title: "Security Settings",
+          url: "/dashboard/auth/security",
+        },
+        {
+          title: "Access Logs",
+          url: "/dashboard/auth/logs",
         },
       ],
     },
@@ -206,8 +222,9 @@ const data = (user: User) => ({
 
 export function Sidebar_07({ user, children }: Sidebar07Props) {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClientComponentClient()
-  const [activeTeam, setActiveTeam] = React.useState(data(user).teams[0])
+  const [activeTeam, setActiveTeam] = React.useState(data(user, pathname).teams[0])
 
   const handleLogout = async () => {
     try {
@@ -257,7 +274,7 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
                   <DropdownMenuLabel className="text-xs text-muted-foreground">
                     Teams
                   </DropdownMenuLabel>
-                  {data(user).teams.map((team, index) => (
+                  {data(user, pathname).teams.map((team, index) => (
                     <DropdownMenuItem
                       key={team.name}
                       onClick={() => setActiveTeam(team)}
@@ -288,7 +305,7 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
           <SidebarGroup>
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
-              {data(user).navMain.map((item) => (
+              {data(user, pathname).navMain.map((item) => (
                 <Collapsible
                   key={item.title}
                   asChild
@@ -300,6 +317,7 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
                       <SidebarMenuButton 
                         asChild
                         tooltip={item.title}
+                        className={item.isActive ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : ""}
                       >
                         <a href={item.url} className="flex w-full items-center">
                           {item.icon && <item.icon className="mr-2" />}
@@ -312,7 +330,11 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild>
+                            <SidebarMenuSubButton 
+                              asChild
+                              className={isExactPathMatch(subItem.url, pathname) ? 
+                                "bg-sidebar-accent text-sidebar-accent-foreground font-medium" : ""}
+                            >
                               <a href={subItem.url}>
                                 <span>{subItem.title}</span>
                               </a>
@@ -329,7 +351,7 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
           <SidebarGroup className="group-data-[collapsible=icon]:hidden">
             <SidebarGroupLabel>Projects</SidebarGroupLabel>
             <SidebarMenu>
-              {data(user).projects.map((item) => (
+              {data(user, pathname).projects.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
@@ -386,19 +408,19 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
                   >
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage
-                        src={data(user).user.avatar}
-                        alt={data(user).user.name}
+                        src={data(user, pathname).user.avatar}
+                        alt={data(user, pathname).user.name}
                       />
                       <AvatarFallback className="rounded-lg">
-                        {data(user).user.name.slice(0, 2).toUpperCase()}
+                        {data(user, pathname).user.name.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
-                        {data(user).user.name}
+                        {data(user, pathname).user.name}
                       </span>
                       <span className="truncate text-xs">
-                        {data(user).user.email}
+                        {data(user, pathname).user.email}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4" />
@@ -414,8 +436,8 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
                     <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                       <Avatar className="h-8 w-8 rounded-lg">
                         <AvatarImage
-                          src={data(user).user.avatar}
-                          alt={data(user).user.name}
+                          src={data(user, pathname).user.avatar}
+                          alt={data(user, pathname).user.name}
                         />
                         <AvatarFallback className="rounded-lg">
                           CN
@@ -423,10 +445,10 @@ export function Sidebar_07({ user, children }: Sidebar07Props) {
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
                         <span className="truncate font-semibold">
-                          {data(user).user.name}
+                          {data(user, pathname).user.name}
                         </span>
                         <span className="truncate text-xs">
-                          {data(user).user.email}
+                          {data(user, pathname).user.email}
                         </span>
                       </div>
                     </div>
