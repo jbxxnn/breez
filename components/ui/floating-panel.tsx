@@ -158,17 +158,56 @@ export function FloatingPanelContent({
     useFloatingPanel()
   const contentRef = useRef<HTMLDivElement>(null)
 
+  const calculatePosition = () => {
+    if (!triggerRect) return {}
+    
+    const viewportWidth = window.innerWidth
+    const contentWidth = 400 // This should match your w-[400px] class
+    
+    // Calculate left position
+    let left = triggerRect.left
+    // If panel would overflow right edge, align to right edge with some padding
+    if (left + contentWidth > viewportWidth - 20) {
+      left = viewportWidth - contentWidth - 20
+    }
+
+    return {
+      left,
+      top: triggerRect.bottom + 8,
+    }
+  }
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Check if the click is on any Select-related elements
+      const isSelectInteraction = (event.target as Element)?.closest([
+        '[role="combobox"]',
+        '[role="listbox"]',
+        '[id^="radix-"]',
+        '[data-radix-select-viewport]',
+        '.select-trigger',
+        '[cmdk-overlay]',
+        '[data-state]',
+        '.SelectContent',
+        '.SelectPortal',
+        '.SelectItem'
+      ].join(','));
+      
       if (
         contentRef.current &&
-        !contentRef.current.contains(event.target as Node)
+        !contentRef.current.contains(event.target as Node) &&
+        !isSelectInteraction
       ) {
         closeFloatingPanel()
       }
     }
+    
+    // Only use mousedown to handle click outside
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
   }, [closeFloatingPanel])
 
   useEffect(() => {
@@ -203,8 +242,7 @@ export function FloatingPanelContent({
             )}
             style={{
               borderRadius: 12,
-              left: triggerRect ? triggerRect.left : "50%",
-              top: triggerRect ? triggerRect.bottom + 8 : "50%",
+              ...calculatePosition(),
               transformOrigin: "top left",
             }}
             initial="hidden"
@@ -249,8 +287,18 @@ function FloatingPanelTitle({ children }: FloatingPanelTitleProps) {
 
 interface FloatingPanelFormProps {
   children: React.ReactNode
-  onSubmit?: (note: string) => void
+  onSubmit?: (note: string) => Promise<void> | void
   className?: string
+}
+
+interface FormContextType {
+  isLoading: boolean
+}
+
+const FormContext = createContext<FormContextType | undefined>(undefined)
+
+function useFormContext() {
+  return useContext(FormContext)
 }
 
 export function FloatingPanelForm({
@@ -259,20 +307,53 @@ export function FloatingPanelForm({
   className,
 }: FloatingPanelFormProps) {
   const { note, closeFloatingPanel } = useFloatingPanel()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit?.(note)
-    closeFloatingPanel()
+    if (!onSubmit) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      await onSubmit(note)
+      closeFloatingPanel()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
-    <form
-      className={cn("flex h-full flex-col", className)}
-      onSubmit={handleSubmit}
-    >
-      {children}
-    </form>
+    <FormContext.Provider value={{ isLoading }}>
+      <form
+        className={cn("flex h-full flex-col relative", className)}
+        onSubmit={handleSubmit}
+      >
+        {error && (
+          <motion.div 
+            className="px-4 py-2 text-sm text-red-500 bg-red-50 dark:bg-red-900/10"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {error}
+          </motion.div>
+        )}
+        {children}
+        {isLoading && (
+          <motion.div 
+            className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-zinc-800/50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <div className="w-5 h-5 border-2 border-zinc-300 border-t-zinc-800 rounded-full animate-spin dark:border-zinc-600 dark:border-t-zinc-200" />
+          </motion.div>
+        )}
+      </form>
+    </FormContext.Provider>
   )
 }
 
@@ -427,16 +508,21 @@ export function FloatingPanelSubmitButton({
   className,
   children,
 }: FloatingPanelSubmitButtonProps) {
+  const formContext = useFormContext()
+  const isLoading = formContext?.isLoading || false
+
   return (
     <motion.button
       className={cn(
-        "relative ml-1 flex h-8 shrink-0 scale-100 select-none appearance-none items-center justify-center rounded-lg border border-zinc-950/10 bg-transparent px-2 text-sm text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 focus-visible:ring-2 active:scale-[0.98] dark:border-zinc-50/10 dark:text-zinc-50 dark:hover:bg-zinc-800",
+        "relative ml-1 flex h-8 shrink-0 scale-100 select-none appearance-none items-center justify-center rounded-lg border border-zinc-950/10 bg-black px-2 text-sm text-white transition-colors hover:bg-zinc-100 hover:text-zinc-800 focus-visible:ring-2 active:scale-[0.98] dark:border-zinc-50/10 dark:text-zinc-50 dark:hover:bg-zinc-800",
+        isLoading && "opacity-50 cursor-not-allowed",
         className
       )}
       type="submit"
+      disabled={isLoading}
       aria-label="Submit note"
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={isLoading ? {} : { scale: 1.05 }}
+      whileTap={isLoading ? {} : { scale: 0.95 }}
     >
       {children}
     </motion.button>

@@ -11,7 +11,7 @@ import { Sidebar_07 } from "@/components/components-sidebar-07"
 //   DropdownMenuContent,
 //   DropdownMenuTrigger,
 // } from "@/components/ui/dropdown-menu"
-import { TestFloatingPanel } from "./components/test-floating-panel"
+import { FloatingTaskPanel } from "./components/floating-task-panel"
 
 export default async function TasksPage() {
   const supabase = createServerComponentClient({ cookies })
@@ -39,9 +39,10 @@ export default async function TasksPage() {
         <header className="flex h-16 items-center justify-between border-b px-4">
           <div className="flex items-center space-x-4">
             <h1 className="text-xl font-semibold">Tasks</h1>
-            <TestFloatingPanel />
+            
           </div>
           <div className="flex items-center gap-2">
+          <FloatingTaskPanel />
           </div>
         </header>
         <main className="flex-1 p-4">

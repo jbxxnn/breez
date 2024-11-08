@@ -1,0 +1,3 @@
+TODO FOR BREEZ APPLICATION
+
+::: When adding New task if you click the add task button and select the dropdown then click out anywhere in the floating panel it will close the panel
