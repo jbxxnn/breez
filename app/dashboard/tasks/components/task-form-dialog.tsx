@@ -397,6 +397,10 @@ export function TaskFormDialog({ task, mode, open: controlledOpen, onOpenChange 
                       }
                     }}
                     initialFocus
+                    disabled={(date) => {
+                      const today = new Date()
+                      return date.setHours(0, 0, 0, 0) < today.setHours(0, 0, 0, 0)
+                    }}
                   />
                   <div className="p-3 border-t">
                     <Input

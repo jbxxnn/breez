@@ -288,6 +288,10 @@ export function FloatingTaskPanel() {
                         }
                       }}
                       initialFocus
+                      disabled={(date) => {
+                        const today = new Date()
+                        return date.setHours(0, 0, 0, 0) < today.setHours(0, 0, 0, 0)
+                      }}
                     />
                     <div className="border-t p-3 space-y-3">
                       <div>
