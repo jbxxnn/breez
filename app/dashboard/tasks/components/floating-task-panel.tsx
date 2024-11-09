@@ -21,6 +21,8 @@ import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
+import { getValidAccessToken, createCalendarEvent } from '@/lib/google-calendar'
+import { Loader2 } from "lucide-react"
 
 export function FloatingTaskPanel() {
   const router = useRouter()
@@ -33,6 +35,7 @@ export function FloatingTaskPanel() {
     priority: "low",
     due_date: "",
   })
+  const [isCalendarLoading, setIsCalendarLoading] = useState(false)
 
   return (
     <FloatingPanel.Root>
@@ -51,26 +54,85 @@ export function FloatingTaskPanel() {
               const { data: { user } } = await supabase.auth.getUser()
               if (!user) throw new Error("No user found")
 
-              const taskData = {
-                ...formData,
-                user_id: user.id,
-                due_date: formData.due_date || null,
+              const { data: task, error: taskError } = await supabase
+                .from("tasks")
+                .insert([{
+                  title: formData.title,
+                  description: formData.description,
+                  status: formData.status,
+                  priority: formData.priority,
+                  due_date: formData.due_date || null,
+                  user_id: user.id,
+                }])
+                .select()
+                .single()
+
+              if (taskError) throw taskError
+
+              if (task && formData.due_date) {
+                try {
+                  setIsCalendarLoading(true)
+                  
+                  const { data: integration } = await supabase
+                    .from('integrations')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .eq('provider', 'google_calendar')
+                    .single()
+
+                  if (integration) {
+                    const accessToken = await getValidAccessToken(integration)
+                    const calendarId = integration.settings?.breez_calendar_id
+
+                    if (!calendarId) {
+                      throw new Error('No calendar ID found')
+                    }
+
+                    await createCalendarEvent(
+                      accessToken,
+                      calendarId,
+                      task
+                    )
+
+                    toast({
+                      title: "Success",
+                      description: "Task created and added to calendar",
+                    })
+                  }
+                } catch (calendarError) {
+                  console.error('Calendar error:', calendarError)
+                  toast({
+                    title: "Warning",
+                    description: "Task created but failed to add to Google Calendar",
+                    variant: "default",
+                  })
+                } finally {
+                  setIsCalendarLoading(false)
+                }
+              } else {
+                toast({
+                  title: "Success",
+                  description: "Task created successfully",
+                })
               }
 
-              const { error } = await supabase
-                .from("tasks")
-                .insert([taskData])
-
-              if (error) throw error
-
-              toast({
-                title: "Success",
-                description: "Task created successfully",
+              setFormData({
+                title: "",
+                description: "",
+                status: "todo",
+                priority: "low",
+                due_date: "",
               })
+
               router.refresh()
             } catch (error) {
               console.error("Error:", error)
-              throw new Error(error instanceof Error ? error.message : "Something went wrong")
+              toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Failed to create task",
+                variant: "destructive",
+              })
+              throw error
             }
           }}
         >
@@ -201,9 +263,22 @@ export function FloatingTaskPanel() {
             </div>
           </FloatingPanel.Body>
           <FloatingPanel.Footer className="border-t">
-            <FloatingPanel.SubmitButton>
-              Create Task
-            </FloatingPanel.SubmitButton>
+            <div className="mt-4 flex items-center justify-end gap-4">
+              <Button 
+                type="submit" 
+                disabled={isCalendarLoading}
+                className="w-full"
+              >
+                {isCalendarLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Adding to Calendar...
+                  </>
+                ) : (
+                  'Create Task'
+                )}
+              </Button>
+            </div>
           </FloatingPanel.Footer>
         </FloatingPanel.Form>
       </FloatingPanel.Content>

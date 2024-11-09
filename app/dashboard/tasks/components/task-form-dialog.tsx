@@ -35,6 +35,7 @@ import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
+import { getValidAccessToken, createCalendarEvent } from '@/lib/google-calendar'
 
 interface TaskFormDialogProps {
   task?: Task
@@ -59,52 +60,113 @@ export function TaskFormDialog({ task, mode }: TaskFormDialogProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.title?.trim()) {
-      toast({
-        title: "Error",
-        description: "Title is required",
-        variant: "destructive",
-      })
-      return
-    }
-
     setLoading(true)
+    console.log('Starting task creation process...')
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("No user found")
+      console.log('Current user:', user.id)
 
       if (mode === "create") {
-        const { error } = await supabase.from("tasks").insert([
-          {
-            ...formData,
-            user_id: user.id,
-          },
-        ])
-        if (error) throw error
-        toast({
-          title: "Success",
-          description: "Task created successfully",
-        })
-      } else {
-        const { error } = await supabase
+        console.log('Creating new task with data:', formData)
+        
+        // Create new task
+        const { data: newTask, error: taskError } = await supabase
           .from("tasks")
-          .update(formData)
+          .insert([{
+            title: formData.title,
+            description: formData.description,
+            status: formData.status,
+            priority: formData.priority,
+            due_date: formData.due_date || null,
+            user_id: user.id,
+          }])
+          .select()
+          .single()
+
+        if (taskError) throw taskError
+        console.log('Task created successfully:', newTask)
+
+        // Handle Google Calendar integration
+        if (newTask && formData.due_date) {
+          console.log('Attempting to create Google Calendar event...')
+          
+          // Check for Google Calendar integration
+          const { data: integration, error: integrationError } = await supabase
+            .from('integrations')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('provider', 'google_calendar')
+            .single()
+
+          if (integrationError) {
+            console.error('Error fetching integration:', integrationError)
+            throw integrationError
+          }
+
+          console.log('Found integration:', integration)
+
+          if (integration) {
+            try {
+              console.log('Getting valid access token...')
+              const accessToken = await getValidAccessToken(integration)
+              console.log('Access token obtained')
+
+              console.log('Creating calendar event with data:', {
+                title: newTask.title,
+                description: newTask.description,
+                due_date: newTask.due_date
+              })
+
+              await createCalendarEvent(
+                accessToken,
+                'primary',
+                newTask
+              )
+              console.log('Calendar event created successfully')
+            } catch (calendarError) {
+              console.error('Calendar integration error:', calendarError)
+              console.error('Calendar error stack:', calendarError instanceof Error ? calendarError.stack : '')
+              
+              toast({
+                title: "Warning",
+                description: "Task created but failed to add to Google Calendar",
+                variant: "default",
+              })
+            }
+          } else {
+            console.log('No Google Calendar integration found for user')
+          }
+        } else {
+          console.log('Skipping calendar event creation - no due date or task data')
+        }
+      } else {
+        // Update existing task
+        const { error: updateError } = await supabase
+          .from("tasks")
+          .update({
+            title: formData.title,
+            description: formData.description,
+            status: formData.status,
+            priority: formData.priority,
+            due_date: formData.due_date || null,
+          })
           .eq("id", task?.id)
-        if (error) throw error
-        toast({
-          title: "Success",
-          description: "Task updated successfully",
-        })
+
+        if (updateError) throw updateError
       }
-      
+
+      toast({
+        title: "Success",
+        description: `Task ${mode === "create" ? "created" : "updated"} successfully`,
+      })
+
       setOpen(false)
       router.refresh()
     } catch (error) {
-      console.error("Error:", error)
+      console.error('Task creation error:', error)
+      console.error('Error stack:', error instanceof Error ? error.stack : '')
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Something went wrong",
