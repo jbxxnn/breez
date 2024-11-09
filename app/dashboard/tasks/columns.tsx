@@ -17,6 +17,8 @@ import { format } from 'date-fns'
 import { TaskFormDialog } from "./components/task-form-dialog"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
+import FloatingPanel from "@/components/ui/floating-panel"
+import { TaskPreviewPanel } from "./components/task-preview-panel"
 
 export interface Task {
   id: string
@@ -112,7 +114,22 @@ export const columns: ColumnDef<Task>[] = [
         </Button>
       )
     },
-    size: 400, // Larger width for title
+    cell: ({ row }) => {
+      const task = row.original
+
+      return (
+        <FloatingPanel.Root>
+          <FloatingPanel.Trigger
+            className="w-full text-left hover:underline cursor-pointer"
+            title={task.title}
+          >
+            {task.title}
+          </FloatingPanel.Trigger>
+          <TaskPreviewPanel task={task} />
+        </FloatingPanel.Root>
+      )
+    },
+    size: 400,
   },
   {
     accessorKey: "status",
