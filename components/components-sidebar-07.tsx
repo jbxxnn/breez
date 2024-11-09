@@ -136,16 +136,20 @@ const data = (user: User, currentPath: string) => ({
       isActive: isPathActive("/dashboard/tasks", currentPath),
       items: [
         {
+          title: "Upcoming Tasks",
+          url: "/dashboard/tasks/upcoming",
+        },
+        {
           title: "All Tasks",
           url: "/dashboard/tasks",
         },
         {
-          title: "Active",
-          url: "/dashboard/tasks/active",
-        },
-        {
           title: "Completed",
           url: "/dashboard/tasks/completed",
+        },
+        {
+          title: "Canceled",
+          url: "/dashboard/tasks/canceled",
         },
       ],
     },

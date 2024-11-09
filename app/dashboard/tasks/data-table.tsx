@@ -29,9 +29,17 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  // DropdownMenuLabel,
+  // DropdownMenuItem,
+  // DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { DataTableFacetedFilter } from "./components/data-table-faceted-filter"
 import { DataTableDateRangePicker } from "./components/data-table-date-range-picker"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { useRouter } from "next/navigation"
+import { Task } from "./columns"
+// import { Trash, ArrowUp, ArrowDown, ArrowRight } from "lucide-react"
+import { getValidAccessToken, deleteCalendarEvent } from '@/lib/google-calendar'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -80,6 +88,8 @@ export function DataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+  const router = useRouter()
+  const supabase = createClientComponentClient()
 
   const table = useReactTable({
     data,
@@ -99,6 +109,81 @@ export function DataTable<TData, TValue>({
       rowSelection,
     },
   })
+
+  const handleBulkDelete = async () => {
+    const selectedRows = table.getSelectedRowModel().rows
+    const selectedIds = selectedRows.map((row) => (row.original as Task).id)
+
+    try {
+      // Delete from Google Calendar if events exist
+      for (const task of selectedRows.map(row => row.original as Task)) {
+        if (task.calendar_event_id) {
+          const { data: integration } = await supabase
+            .from('integrations')
+            .select('*')
+            .eq('provider', 'google_calendar')
+            .single()
+
+          if (integration) {
+            try {
+              const accessToken = await getValidAccessToken(integration)
+              const calendarId = integration.settings?.breez_calendar_id
+              await deleteCalendarEvent(
+                accessToken,
+                calendarId,
+                task.calendar_event_id
+              )
+            } catch (error) {
+              console.error('Failed to delete calendar event:', error)
+            }
+          }
+        }
+      }
+
+      // Delete the tasks
+      await supabase
+        .from("tasks")
+        .delete()
+        .in("id", selectedIds)
+
+      table.toggleAllRowsSelected(false)
+      router.refresh()
+    } catch (error) {
+      console.error("Error deleting tasks:", error)
+    }
+  }
+
+  const handleBulkUpdateStatus = async (status: Task['status']) => {
+    const selectedIds = table.getSelectedRowModel().rows.map((row) => (row.original as Task).id)
+
+    try {
+      await supabase
+        .from("tasks")
+        .update({ status })
+        .in("id", selectedIds)
+
+      table.toggleAllRowsSelected(false)
+      router.refresh()
+    } catch (error) {
+      console.error("Error updating task status:", error)
+    }
+  }
+
+  const handleBulkUpdatePriority = async (priority: Task['priority']) => {
+    const selectedIds = table.getSelectedRowModel().rows.map((row) => (row.original as Task).id)
+
+    try {
+      await supabase
+        .from("tasks")
+        .update({ priority })
+        .in("id", selectedIds)
+
+      table.toggleAllRowsSelected(false)
+      router.refresh()
+    } catch (error) {
+      console.error("Error updating task priority:", error)
+    }
+  }
 
   return (
     <div>
@@ -130,6 +215,43 @@ export function DataTable<TData, TValue>({
             <DataTableDateRangePicker column={table.getColumn("due_date")} />
           )}
         </div>
+        {table.getSelectedRowModel().rows.length > 0 && (
+          <>
+            <Button variant="destructive" onClick={handleBulkDelete}>
+              Delete
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">Update Status</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {statuses.map((status) => (
+                  <DropdownMenuCheckboxItem
+                    key={status.value}
+                    onSelect={() => handleBulkUpdateStatus(status.value as Task['status'])}
+                  >
+                    {status.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">Update Priority</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {priorities.map((priority) => (
+                  <DropdownMenuCheckboxItem
+                    key={priority.value}
+                    onSelect={() => handleBulkUpdatePriority(priority.value as Task['priority'])}
+                  >
+                    {priority.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">
