@@ -100,11 +100,18 @@ export function FloatingTaskPanel() {
                       return
                     }
 
-                    await createCalendarEvent(
+                    const event = await createCalendarEvent(
                       accessToken,
                       calendarId,
                       task
                     )
+
+                    if (event?.eventId) {
+                      await supabase
+                        .from("tasks")
+                        .update({ calendar_event_id: event.eventId })
+                        .eq("id", task.id)
+                    }
 
                     toast({
                       title: "✨ Complete Success",

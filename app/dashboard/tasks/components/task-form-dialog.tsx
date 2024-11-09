@@ -35,7 +35,7 @@ import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
-import { getValidAccessToken, createCalendarEvent } from '@/lib/google-calendar'
+import { getValidAccessToken, createCalendarEvent, updateCalendarEvent } from '@/lib/google-calendar'
 
 interface TaskFormDialogProps {
   task?: Task
@@ -94,65 +94,107 @@ export function TaskFormDialog({ task, mode, open: controlledOpen, onOpenChange 
           .select()
           .single()
 
-        if (taskError) throw taskError
+        if (taskError) {
+          console.error('Task creation error:', taskError)
+          throw taskError
+        }
         console.log('Task created successfully:', newTask)
 
         // Handle Google Calendar integration
         if (newTask && formData.due_date) {
-          console.log('Attempting to create Google Calendar event...')
+          console.log('Starting calendar integration process...')
+          console.log('Task ID:', newTask.id)
           
-          // Check for Google Calendar integration
-          const { data: integration, error: integrationError } = await supabase
-            .from('integrations')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('provider', 'google_calendar')
-            .single()
+          try {
+            // Check for Google Calendar integration
+            const { data: integration, error: integrationError } = await supabase
+              .from('integrations')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('provider', 'google_calendar')
+              .single()
 
-          if (integrationError) {
-            console.error('Error fetching integration:', integrationError)
-            throw integrationError
-          }
+            console.log('Integration query result:', { integration, error: integrationError })
 
-          console.log('Found integration:', integration)
+            if (integrationError) {
+              console.error('Integration fetch error:', integrationError)
+              throw integrationError
+            }
 
-          if (integration) {
-            try {
-              console.log('Getting valid access token...')
+            if (integration) {
+              console.log('Found valid integration, proceeding with calendar event creation')
+              
               const accessToken = await getValidAccessToken(integration)
-              console.log('Access token obtained')
+              console.log('Access token obtained successfully')
 
-              console.log('Creating calendar event with data:', {
+              const calendarId = integration.settings?.breez_calendar_id || 'primary'
+              console.log('Using calendar ID:', calendarId)
+
+              console.log('Creating calendar event for task:', {
+                id: newTask.id,
                 title: newTask.title,
                 description: newTask.description,
                 due_date: newTask.due_date
               })
 
-              await createCalendarEvent(
+              const event = await createCalendarEvent(
                 accessToken,
-                'primary',
+                calendarId,
                 newTask
               )
-              console.log('Calendar event created successfully')
-            } catch (calendarError) {
-              console.error('Calendar integration error:', calendarError)
-              console.error('Calendar error stack:', calendarError instanceof Error ? calendarError.stack : '')
-              
-              toast({
-                title: "Warning",
-                description: "Task created but failed to add to Google Calendar",
-                variant: "default",
-              })
+
+              console.log('Calendar event created:', event)
+              console.log('Calendar event ID:', event?.eventId)
+
+              if (event?.eventId) {
+                console.log('Attempting to update task with calendar event ID:', event.eventId)
+                
+                const { data: updatedTask, error: updateError } = await supabase
+                  .from("tasks")
+                  .update({ calendar_event_id: event.eventId })
+                  .eq("id", newTask.id)
+                  .select()
+                  .single()
+
+                if (updateError) {
+                  console.error('Failed to update task with calendar event ID:', updateError)
+                  throw updateError
+                }
+
+                console.log('Successfully updated task with calendar event ID:', {
+                  taskId: newTask.id,
+                  eventId: event.eventId,
+                  updatedTask
+                })
+              } else {
+                console.error('No event ID received from calendar creation')
+              }
+            } else {
+              console.log('No Google Calendar integration found for user')
             }
-          } else {
-            console.log('No Google Calendar integration found for user')
+          } catch (calendarError) {
+            console.error('Calendar integration error:', calendarError)
+            console.error('Calendar error details:', {
+              name: (calendarError as Error).name,
+              message: (calendarError as Error).message,
+              stack: (calendarError as Error).stack
+            })
+            
+            toast({
+              title: "Warning",
+              description: "Task created but failed to add to Google Calendar",
+              variant: "default",
+            })
           }
         } else {
-          console.log('Skipping calendar event creation - no due date or task data')
+          console.log('Skipping calendar event creation:', {
+            hasTask: !!newTask,
+            hasDueDate: !!formData.due_date
+          })
         }
       } else {
         // Update existing task
-        const { error: updateError } = await supabase
+        const { data: updatedTask, error: updateError } = await supabase
           .from("tasks")
           .update({
             title: formData.title,
@@ -162,8 +204,57 @@ export function TaskFormDialog({ task, mode, open: controlledOpen, onOpenChange 
             due_date: formData.due_date || null,
           })
           .eq("id", task?.id)
+          .select()
+          .single()
 
         if (updateError) throw updateError
+
+        // Handle Google Calendar integration for updates
+        if (updatedTask && formData.due_date) {
+          const { data: integration } = await supabase
+            .from('integrations')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('provider', 'google_calendar')
+            .single()
+
+          if (integration) {
+            try {
+              const accessToken = await getValidAccessToken(integration)
+              const calendarId = integration.settings?.breez_calendar_id
+
+              if (task?.calendar_event_id) {
+                if (!task) return  // Add type guard
+                // Update existing calendar event
+                await updateCalendarEvent(
+                  accessToken,
+                  calendarId,
+                  task.calendar_event_id,
+                  updatedTask
+                )
+              } else {
+                // Create new calendar event if it doesn't exist
+                const event = await createCalendarEvent(
+                  accessToken,
+                  calendarId,
+                  updatedTask
+                )
+                // Store the event ID
+                await supabase
+                  .from("tasks")
+                  .update({ calendar_event_id: event.eventId })
+                  .eq("id", task?.id || '')
+              }
+            } catch (calendarError) {
+              console.error('Calendar integration error:', calendarError)
+              toast({
+                title: "Warning",
+                description: "Task updated but failed to update Google Calendar",
+                variant: "default",
+              })
+            }
+          }
+        }
       }
 
       toast({

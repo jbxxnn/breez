@@ -57,7 +57,12 @@ export async function fetchCalendarEvents(accessToken: string) {
 }
 
 export async function createCalendarEvent(accessToken: string, calendarId: string, task: Partial<Task>) {
-  console.log('Creating calendar event in calendar:', calendarId)
+  console.log('Creating calendar event with params:', {
+    calendarId,
+    taskId: task.id,
+    title: task.title,
+    dueDate: task.due_date
+  })
   
   try {
     // Create start date from due_date and start_time
@@ -66,6 +71,7 @@ export async function createCalendarEvent(accessToken: string, calendarId: strin
       const [startHours, startMinutes] = task.start_time.split(':')
       startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0)
     }
+    console.log('Calculated start date:', startDate)
 
     // Create end date from due_date and end_time
     const endDate = new Date(task.due_date!)
@@ -76,6 +82,7 @@ export async function createCalendarEvent(accessToken: string, calendarId: strin
       // If no end time, make it 1 hour after start
       endDate.setHours(startDate.getHours() + 1, startDate.getMinutes(), 0)
     }
+    console.log('Calculated end date:', endDate)
 
     const event = {
       summary: task.title,
@@ -91,7 +98,8 @@ export async function createCalendarEvent(accessToken: string, calendarId: strin
     }
     
     console.log('Calendar event payload:', event)
-    console.log('Using calendar ID:', calendarId)
+    console.log('Request URL:', `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`)
+    console.log('Access token (first 10 chars):', accessToken.substring(0, 10))
 
     const response = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
@@ -105,18 +113,32 @@ export async function createCalendarEvent(accessToken: string, calendarId: strin
       }
     )
 
+    console.log('Calendar API response status:', response.status)
+    
     if (!response.ok) {
       const errorData = await response.json()
-      console.error('Google Calendar API error:', errorData)
+      console.error('Google Calendar API error response:', errorData)
       throw new Error(`Calendar API error: ${errorData.error?.message || 'Unknown error'}`)
     }
 
     const data = await response.json()
-    console.log('Calendar event created:', data)
-    return data
+    console.log('Calendar event created successfully:', {
+      eventId: data.id,
+      htmlLink: data.htmlLink,
+      status: data.status
+    })
+    
+    return {
+      eventId: data.id,
+      htmlLink: data.htmlLink
+    }
   } catch (error) {
-    console.error('Error creating calendar event:', error)
-    console.error('Error stack:', error instanceof Error ? error.stack : '')
+    console.error('Error in createCalendarEvent:', error)
+    console.error('Error details:', {
+      name: (error as Error).name,
+      message: (error as Error).message,
+      stack: (error as Error).stack
+    })
     throw error
   }
 }
@@ -147,6 +169,103 @@ export async function refreshGoogleToken(integration: Integration) {
     return data.access_token
   } catch (error) {
     console.error('Token refresh error:', error)
+    throw error
+  }
+}
+
+export async function updateCalendarEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string,
+  task: Partial<Task>
+) {
+  console.log('Updating calendar event:', eventId)
+  
+  try {
+    // Create start date from due_date and start_time
+    const startDate = new Date(task.due_date!)
+    if (task.start_time) {
+      const [startHours, startMinutes] = task.start_time.split(':')
+      startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0)
+    }
+
+    // Create end date from due_date and end_time
+    const endDate = new Date(task.due_date!)
+    if (task.end_time) {
+      const [endHours, endMinutes] = task.end_time.split(':')
+      endDate.setHours(parseInt(endHours), parseInt(endMinutes), 0)
+    } else {
+      endDate.setHours(startDate.getHours() + 1, startDate.getMinutes(), 0)
+    }
+
+    const event = {
+      summary: task.title,
+      description: task.description,
+      start: {
+        dateTime: startDate.toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+      end: {
+        dateTime: endDate.toISOString(),
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      },
+    }
+
+    const response = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('Google Calendar API error:', errorData)
+      throw new Error(`Calendar API error: ${errorData.error?.message || 'Unknown error'}`)
+    }
+
+    const data = await response.json()
+    console.log('Calendar event updated:', data)
+    return data
+  } catch (error) {
+    console.error('Error updating calendar event:', error)
+    throw error
+  }
+}
+
+export async function deleteCalendarEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string
+) {
+  console.log('Deleting calendar event:', eventId)
+  
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${eventId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('Google Calendar API error:', errorData)
+      throw new Error(`Calendar API error: ${errorData.error?.message || 'Unknown error'}`)
+    }
+
+    console.log('Calendar event deleted successfully')
+    return true
+  } catch (error) {
+    console.error('Error deleting calendar event:', error)
     throw error
   }
 } 

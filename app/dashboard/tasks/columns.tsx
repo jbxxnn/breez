@@ -20,6 +20,8 @@ import { useRouter } from "next/navigation"
 import FloatingPanel from "@/components/ui/floating-panel"
 import { TaskPreviewPanel } from "./components/task-preview-panel"
 import { useState } from "react"
+import { deleteCalendarEvent } from '@/lib/google-calendar'
+import { getValidAccessToken } from '@/lib/google-calendar'
 
 export interface Task {
   id: string
@@ -32,6 +34,7 @@ export interface Task {
   end_time?: string
   user_id: string
   created_at: string
+  calendar_event_id?: string
 }
 
 const ActionCell = ({ row }: { row: Row<Task> }) => {
@@ -42,10 +45,35 @@ const ActionCell = ({ row }: { row: Row<Task> }) => {
 
   const handleDelete = async () => {
     try {
+      // Delete from Google Calendar if event exists
+      if (task.calendar_event_id) {
+        const { data: integration } = await supabase
+          .from('integrations')
+          .select('*')
+          .eq('provider', 'google_calendar')
+          .single()
+
+        if (integration) {
+          try {
+            const accessToken = await getValidAccessToken(integration)
+            const calendarId = integration.settings?.breez_calendar_id
+            await deleteCalendarEvent(
+              accessToken,
+              calendarId,
+              task.calendar_event_id
+            )
+          } catch (calendarError) {
+            console.error('Failed to delete calendar event:', calendarError)
+          }
+        }
+      }
+
+      // Delete the task
       await supabase
         .from("tasks")
         .delete()
         .eq("id", task.id)
+
       router.refresh()
     } catch (error) {
       console.error("Error:", error)

@@ -9,4 +9,5 @@ export interface Task {
   end_time?: string
   user_id: string
   created_at: string
+  calendar_event_id?: string
 }
