@@ -40,13 +40,14 @@ import { getValidAccessToken, createCalendarEvent } from '@/lib/google-calendar'
 interface TaskFormDialogProps {
   task?: Task
   mode: "create" | "edit"
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
-export function TaskFormDialog({ task, mode }: TaskFormDialogProps) {
+export function TaskFormDialog({ task, mode, open: controlledOpen, onOpenChange }: TaskFormDialogProps) {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const { toast } = useToast()
-  const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<Partial<Task>>(
     task || {
@@ -57,6 +58,14 @@ export function TaskFormDialog({ task, mode }: TaskFormDialogProps) {
       due_date: "",
     }
   )
+
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+
+  const open = controlledOpen ?? uncontrolledOpen
+  const setOpen = (newOpen: boolean) => {
+    setUncontrolledOpen(newOpen)
+    onOpenChange?.(newOpen)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

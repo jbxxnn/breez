@@ -12,13 +12,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { MoreHorizontal, Trash, ChevronsUpDown, ArrowUp, ArrowDown, CircleX, CircleCheck, CircleHelp, Timer, ArrowRight } from "lucide-react"
+import { MoreHorizontal, Trash, ChevronsUpDown, ArrowUp, ArrowDown, CircleX, CircleCheck, CircleHelp, Timer, ArrowRight, Edit } from "lucide-react"
 import { format } from 'date-fns'
 import { TaskFormDialog } from "./components/task-form-dialog"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
 import FloatingPanel from "@/components/ui/floating-panel"
 import { TaskPreviewPanel } from "./components/task-preview-panel"
+import { useState } from "react"
 
 export interface Task {
   id: string
@@ -37,6 +38,7 @@ const ActionCell = ({ row }: { row: Row<Task> }) => {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const task = row.original
+  const [showEditDialog, setShowEditDialog] = useState(false)
 
   const handleDelete = async () => {
     try {
@@ -64,8 +66,9 @@ const ActionCell = ({ row }: { row: Row<Task> }) => {
           Copy task ID
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <TaskFormDialog mode="edit" task={task} />
+        <DropdownMenuItem onSelect={() => setShowEditDialog(true)}>
+          <Edit className="mr-2 h-4 w-4" />
+          Edit
         </DropdownMenuItem>
         <DropdownMenuItem 
           className="text-destructive"
@@ -75,6 +78,14 @@ const ActionCell = ({ row }: { row: Row<Task> }) => {
           Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
+      {showEditDialog && (
+        <TaskFormDialog 
+          mode="edit" 
+          task={task} 
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+        />
+      )}
     </DropdownMenu>
   )
 }
