@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
 import { getValidAccessToken, createCalendarEvent } from '@/lib/google-calendar'
 import { Loader2 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export function FloatingTaskPanel() {
   const router = useRouter()
@@ -36,6 +37,7 @@ export function FloatingTaskPanel() {
     due_date: "",
   })
   const [isCalendarLoading, setIsCalendarLoading] = useState(false)
+  const [addToCalendar, setAddToCalendar] = useState(true)
 
   return (
     <FloatingPanel.Root>
@@ -69,7 +71,7 @@ export function FloatingTaskPanel() {
 
               if (taskError) throw taskError
 
-              if (task && formData.due_date) {
+              if (task && formData.due_date && addToCalendar) {
                 try {
                   setIsCalendarLoading(true)
                   
@@ -85,7 +87,12 @@ export function FloatingTaskPanel() {
                     const calendarId = integration.settings?.breez_calendar_id
 
                     if (!calendarId) {
-                      throw new Error('No calendar ID found')
+                      toast({
+                        title: "Partial Success",
+                        description: "Task created but no calendar ID found. Please check your Google Calendar integration.",
+                        variant: "default",
+                      })
+                      return
                     }
 
                     await createCalendarEvent(
@@ -95,15 +102,35 @@ export function FloatingTaskPanel() {
                     )
 
                     toast({
-                      title: "Success",
-                      description: "Task created and added to calendar",
+                      title: "✨ Complete Success",
+                      description: (
+                        <div className="flex flex-col gap-1">
+                          <span>✓ Task created successfully</span>
+                          <span>✓ Added to Google Calendar</span>
+                        </div>
+                      ),
+                      variant: "default",
+                    })
+                  } else {
+                    toast({
+                      title: "Task Created",
+                      description: "Task saved without calendar event (No Google Calendar integration found)",
+                      variant: "default",
                     })
                   }
                 } catch (calendarError) {
                   console.error('Calendar error:', calendarError)
                   toast({
-                    title: "Warning",
-                    description: "Task created but failed to add to Google Calendar",
+                    title: "Partial Success",
+                    description: (
+                      <div className="flex flex-col gap-1">
+                        <span>✓ Task created successfully</span>
+                        <span>✗ Failed to add to Google Calendar</span>
+                        <span className="text-sm text-muted-foreground">
+                          {calendarError instanceof Error ? calendarError.message : "Unknown error"}
+                        </span>
+                      </div>
+                    ),
                     variant: "default",
                   })
                 } finally {
@@ -111,8 +138,13 @@ export function FloatingTaskPanel() {
                 }
               } else {
                 toast({
-                  title: "Success",
-                  description: "Task created successfully",
+                  title: "Task Created",
+                  description: !addToCalendar 
+                    ? "Task saved (calendar integration disabled)"
+                    : formData.due_date 
+                      ? "Task saved successfully"
+                      : "Task saved (no calendar event needed - no due date set)",
+                  variant: "default",
                 })
               }
 
@@ -123,13 +155,16 @@ export function FloatingTaskPanel() {
                 priority: "low",
                 due_date: "",
               })
+              setAddToCalendar(true)
 
               router.refresh()
             } catch (error) {
               console.error("Error:", error)
               toast({
                 title: "Error",
-                description: error instanceof Error ? error.message : "Failed to create task",
+                description: error instanceof Error 
+                  ? error.message 
+                  : "Failed to create task",
                 variant: "destructive",
               })
               throw error
@@ -260,6 +295,22 @@ export function FloatingTaskPanel() {
                   </PopoverContent>
                 </Popover>
               </div>
+
+              {formData.due_date && (
+                <div className="flex items-center space-x-2 pt-2">
+                  <Checkbox
+                    id="calendar"
+                    checked={addToCalendar}
+                    onCheckedChange={(checked) => setAddToCalendar(checked as boolean)}
+                  />
+                  <Label 
+                    htmlFor="calendar" 
+                    className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Add to Google Calendar
+                  </Label>
+                </div>
+              )}
             </div>
           </FloatingPanel.Body>
           <FloatingPanel.Footer className="border-t">
