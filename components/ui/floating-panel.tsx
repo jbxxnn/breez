@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react"
-import { AnimatePresence, MotionConfig, Variants, motion } from "framer-motion"
+import { AnimatePresence, MotionConfig, motion } from "framer-motion"
 import { ArrowLeftIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -148,34 +148,16 @@ export function FloatingPanelTrigger({
 interface FloatingPanelContentProps {
   children: React.ReactNode
   className?: string
+  overlayClassName?: string
 }
 
 export function FloatingPanelContent({
   children,
   className,
+  overlayClassName,
 }: FloatingPanelContentProps) {
-  const { isOpen, closeFloatingPanel, uniqueId, triggerRect, title } =
-    useFloatingPanel()
+  const { isOpen, closeFloatingPanel, uniqueId, title } = useFloatingPanel()
   const contentRef = useRef<HTMLDivElement>(null)
-
-  const calculatePosition = () => {
-    if (!triggerRect) return {}
-    
-    const viewportWidth = window.innerWidth
-    const contentWidth = 400 // This should match your w-[400px] class
-    
-    // Calculate left position
-    let left = triggerRect.left
-    // If panel would overflow right edge, align to right edge with some padding
-    if (left + contentWidth > viewportWidth - 20) {
-      left = viewportWidth - contentWidth - 20
-    }
-
-    return {
-      left,
-      top: triggerRect.bottom + 8,
-    }
-  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -218,37 +200,33 @@ export function FloatingPanelContent({
     return () => document.removeEventListener("keydown", handleKeyDown)
   }, [closeFloatingPanel])
 
-  const variants: Variants = {
-    hidden: { opacity: 0, scale: 0.9, y: 10 },
-    visible: { opacity: 1, scale: 1, y: 0 },
-  }
-
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div
-            initial={{ backdropFilter: "blur(0px)" }}
-            animate={{ backdropFilter: "blur(4px)" }}
-            exit={{ backdropFilter: "blur(0px)" }}
-            className="fixed inset-0 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={cn(
+              "fixed inset-0 z-40 bg-black/50",
+              overlayClassName
+            )}
           />
           <motion.div
             ref={contentRef}
             layoutId={`floating-panel-${uniqueId}`}
             className={cn(
-              "fixed z-50 overflow-hidden border border-zinc-950/10 bg-white shadow-lg outline-none dark:border-zinc-50/10 dark:bg-zinc-800",
+              "fixed left-[40%] top-[20%] z-50 -translate-x-1/2 -translate-y-1/2 overflow-hidden border border-zinc-950/10 bg-white shadow-lg outline-none dark:border-zinc-50/10 dark:bg-zinc-800",
               className
             )}
             style={{
               borderRadius: 12,
-              ...calculatePosition(),
-              transformOrigin: "top left",
             }}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            variants={variants}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             role="dialog"
             aria-modal="true"
             aria-labelledby={`floating-panel-title-${uniqueId}`}
