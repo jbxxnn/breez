@@ -60,15 +60,32 @@ export async function createCalendarEvent(accessToken: string, calendarId: strin
   console.log('Creating calendar event in calendar:', calendarId)
   
   try {
+    // Create start date from due_date and start_time
+    const startDate = new Date(task.due_date!)
+    if (task.start_time) {
+      const [startHours, startMinutes] = task.start_time.split(':')
+      startDate.setHours(parseInt(startHours), parseInt(startMinutes), 0)
+    }
+
+    // Create end date from due_date and end_time
+    const endDate = new Date(task.due_date!)
+    if (task.end_time) {
+      const [endHours, endMinutes] = task.end_time.split(':')
+      endDate.setHours(parseInt(endHours), parseInt(endMinutes), 0)
+    } else {
+      // If no end time, make it 1 hour after start
+      endDate.setHours(startDate.getHours() + 1, startDate.getMinutes(), 0)
+    }
+
     const event = {
       summary: task.title,
       description: task.description,
       start: {
-        dateTime: task.due_date,
+        dateTime: startDate.toISOString(),
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
       end: {
-        dateTime: task.due_date,
+        dateTime: endDate.toISOString(),
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       },
     }

@@ -13,19 +13,22 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { MoreHorizontal, Trash, ChevronsUpDown, ArrowUp, ArrowDown, CircleX, CircleCheck, CircleHelp, Timer, ArrowRight } from "lucide-react"
-import { formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 import { TaskFormDialog } from "./components/task-form-dialog"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useRouter } from "next/navigation"
 
-export type Task = {
+export interface Task {
   id: string
   title: string
   description?: string
-  status: "todo" | "in_progress" | "completed"
+  status: "todo" | "in_progress" | "done" | "canceled"
   priority: "low" | "medium" | "high"
-  created_at: string
   due_date?: string
+  start_time?: string
+  end_time?: string
+  user_id: string
+  created_at: string
 }
 
 const ActionCell = ({ row }: { row: Row<Task> }) => {
@@ -181,7 +184,7 @@ export const columns: ColumnDef<Task>[] = [
     size: 150, // Fixed width for priority
   },
   {
-    accessorKey: "created_at",
+    accessorKey: "due_date",
     header: ({ column }) => {
       return (
         <Button
@@ -189,7 +192,7 @@ export const columns: ColumnDef<Task>[] = [
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           className="hover:bg-transparent flex justify-start p-0"
         >
-          Created
+          Due Date
           {column.getIsSorted() === "asc" ? (
             <ArrowUp className="ml-2.5 size-4" />
           ) : column.getIsSorted() === "desc" ? (
@@ -201,11 +204,28 @@ export const columns: ColumnDef<Task>[] = [
       )
     },
     cell: ({ row }) => {
-      return formatDistanceToNow(new Date(row.getValue("created_at")), { addSuffix: true })
+      const due_date = row.getValue("due_date") as string | null
+      const start_time = row.original.start_time
+      const end_time = row.original.end_time
+
+      if (!due_date) return null
+
+      return (
+        <div className="flex flex-col">
+          <div>{format(new Date(due_date), "MMM d, yyyy")}</div>
+          {start_time && end_time && (
+            <div className="text-sm text-muted-foreground">
+              {start_time} - {end_time}
+            </div>
+          )}
+        </div>
+      )
     },
     filterFn: (row, id, value: { from: Date; to: Date }) => {
-      const rowDate = new Date(row.getValue(id))
-      return rowDate >= value.from && rowDate <= value.to
+      const rowDate = row.getValue(id) as string | null
+      if (!rowDate) return false
+      const date = new Date(rowDate)
+      return date >= value.from && date <= value.to
     },
     size: 180,
   },

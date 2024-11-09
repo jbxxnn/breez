@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { getValidAccessToken, createCalendarEvent } from '@/lib/google-calendar'
 import { Loader2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { addHours } from "date-fns"
 
 export function FloatingTaskPanel() {
   const router = useRouter()
@@ -35,6 +36,8 @@ export function FloatingTaskPanel() {
     status: "todo",
     priority: "low",
     due_date: "",
+    start_time: "",
+    end_time: "",
   })
   const [isCalendarLoading, setIsCalendarLoading] = useState(false)
   const [addToCalendar, setAddToCalendar] = useState(true)
@@ -64,6 +67,8 @@ export function FloatingTaskPanel() {
                   status: formData.status,
                   priority: formData.priority,
                   due_date: formData.due_date || null,
+                  start_time: formData.start_time || null,
+                  end_time: formData.end_time || null,
                   user_id: user.id,
                 }])
                 .select()
@@ -154,6 +159,8 @@ export function FloatingTaskPanel() {
                 status: "todo",
                 priority: "low",
                 due_date: "",
+                start_time: "",
+                end_time: "",
               })
               setAddToCalendar(true)
 
@@ -238,7 +245,7 @@ export function FloatingTaskPanel() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="due_date">Due Date</Label>
+                <Label htmlFor="due_date">Date & Time</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -250,7 +257,7 @@ export function FloatingTaskPanel() {
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {formData.due_date ? (
-                        format(new Date(formData.due_date), "PPP p")
+                        format(new Date(formData.due_date), "PPP")
                       ) : (
                         <span>Pick a date</span>
                       )}
@@ -262,8 +269,11 @@ export function FloatingTaskPanel() {
                       selected={formData.due_date ? new Date(formData.due_date) : undefined}
                       onSelect={(date) => {
                         if (date) {
-                          // Set time to end of day by default
-                          date.setHours(23, 59, 59, 999)
+                          // Keep the existing time when changing date
+                          const currentTime = formData.due_date 
+                            ? new Date(formData.due_date)
+                            : new Date()
+                          date.setHours(currentTime.getHours(), currentTime.getMinutes())
                           setFormData((prev) => ({
                             ...prev,
                             due_date: date.toISOString(),
@@ -272,25 +282,43 @@ export function FloatingTaskPanel() {
                       }}
                       initialFocus
                     />
-                    <div className="p-3 border-t">
-                      <Input
-                        type="time"
-                        value={formData.due_date 
-                          ? format(new Date(formData.due_date), "HH:mm")
-                          : ""
-                        }
-                        onChange={(e) => {
-                          const [hours, minutes] = e.target.value.split(':')
-                          const date = formData.due_date 
-                            ? new Date(formData.due_date)
-                            : new Date()
-                          date.setHours(parseInt(hours), parseInt(minutes))
-                          setFormData((prev) => ({
-                            ...prev,
-                            due_date: date.toISOString(),
-                          }))
-                        }}
-                      />
+                    <div className="border-t p-3 space-y-3">
+                      <div>
+                        <Label htmlFor="start_time">Start Time</Label>
+                        <Input
+                          id="start_time"
+                          type="time"
+                          value={formData.start_time || ""}
+                          onChange={(e) => {
+                            const [hours, minutes] = e.target.value.split(':')
+                            const date = formData.due_date 
+                              ? new Date(formData.due_date)
+                              : new Date()
+                            date.setHours(parseInt(hours), parseInt(minutes))
+                            setFormData((prev) => ({
+                              ...prev,
+                              due_date: date.toISOString(),
+                              start_time: e.target.value,
+                              // If end time isn't set, set it to 1 hour after start
+                              end_time: prev.end_time || format(addHours(date, 1), 'HH:mm'),
+                            }))
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="end_time">End Time</Label>
+                        <Input
+                          id="end_time"
+                          type="time"
+                          value={formData.end_time || ""}
+                          onChange={(e) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              end_time: e.target.value,
+                            }))
+                          }}
+                        />
+                      </div>
                     </div>
                   </PopoverContent>
                 </Popover>

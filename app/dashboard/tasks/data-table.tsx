@@ -126,8 +126,8 @@ export function DataTable<TData, TValue>({
               options={priorities}
             />
           )}
-          {table.getColumn("created_at") && (
-            <DataTableDateRangePicker column={table.getColumn("created_at")} />
+          {table.getColumn("due_date") && (
+            <DataTableDateRangePicker column={table.getColumn("due_date")} />
           )}
         </div>
         <DropdownMenu>
